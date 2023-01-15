@@ -1,0 +1,159 @@
+---
+title: "Hackaton"
+author: "Nadezhda Tsurikova"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+загружаю базу данных
+
+```{r}
+library(readxl)
+db <- read_excel("data/raw/db_team1.xlsx")
+db_team1 <- read_excel("data/raw/db_team1.xlsx")
+```
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(gtsummary)
+library(flextable)
+library(dplyr)
+library(epiR)
+library(ggplot2)
+library(ggpubr)
+library(gvlma)
+library(haven)
+library(htmlTable)
+library(openxlsx)
+library(pROC)
+library(psych)
+library(readr)
+library(labelled)
+library(readxl)
+library(rlang)
+library(rmarkdown)
+library(ROCR)
+library(tibble)
+library(xtable)
+library(gtsummary)
+library(tidyverse)
+library(tidyr)
+library(purrr)
+library(magrittr)
+library(utf8)
+library(flextable)
+library(Rmisc)
+library(epitools)
+library(officer)
+library(mlbench)
+library(coin)
+library(skimr)
+library(maps)
+library(writexl)
+library(corrplot)
+library(corrr)
+library(pheatmap)
+library(FactoMineR)
+library(plotly)
+```
+
+```{r}
+db <- db %>%
+  mutate(across(c(V0_GRP, V0_DEM_GEN, V1_NORM_ECG, V1_NORM_PHYS, V1_NORM_VIT, V2_NORM_ECG, V2_NORM_PHYS, V2_NORM_VIT), ~ as.factor(.x))) %>%
+  select(!`...1`)
+
+str(db)
+```
+
+```{r}
+db %>%
+  tbl_summary(by = V0_GRP) %>%
+  add_p()
+```
+
+
+```{r}
+statistics <- list(
+      `__Количество субъектов` = ~length(.x) %>% as.character(),
+      `__Ср. знач.` = ~ifelse(sum(!is.na(.x)) == 0, "Н/П*", mean(.x, na.rm = TRUE) %>% round(2) %>% as.character()),
+      `__Станд. отклон.` = ~ifelse(sum(!is.na(.x)) < 3, "Н/П*", sd(.x, na.rm = TRUE) %>% round(2) %>% as.character()),
+      `__95% ДИ для среднего` = ~sd(.x, na.rm = TRUE) %>% round(2) %>% as.character(),
+      `__мин. - макс.` = ~ifelse(sum(!is.na(.x)) == 0, "Н/П*", paste0(min(.x, na.rm = TRUE) %>% round(2), " - ", max(.x, na.rm = TRUE) %>% round(2))),
+      `__Медиана` = ~ifelse(sum(!is.na(.x)) == 0, "Н/П*", median(.x, na.rm = TRUE) %>% round(2) %>% as.character()),
+      `__Q1 - Q3` = ~ifelse(sum(!is.na(.x)) == 0, "Н/П*", paste0(quantile(.x, 0.25, na.rm = TRUE) %>% round(2), " - ", quantile(.x, 0.75, na.rm = TRUE) %>% round(2)))
+)
+```
+
+
+```{r}
+db %>%
+  select(!ID, V0_GRP, where(is.numeric)) %>%
+  group_by(V0_GRP) %>%
+  summarise(across(where(is.numeric), statistics)) %>%
+  pivot_longer(!V0_GRP) %>%
+  separate(name, c("Переменная", "Статистика"), sep = "__") %>%
+  rename(`Значение` = value) %>%
+  rename(`Препарат` = V0_GRP) %>%
+  mutate(`Препарат` = ifelse(`Препарат` == "R", "Zopiclone", "Kindinorm")) %>%
+  flextable() %>%
+  theme_box() %>%
+  merge_v(c("Препарат", "Переменная"))
+```
+
+
+
+
+анализ базовых характеристик
+
+```{r}
+db_team1$V0_DEM_GEN <- ifelse(db_team1$V0_DEM_GEN == 1, "male", "female")
+
+db_team1$V0_GRP <- ifelse(db_team1$V0_GRP == "T", "zopiclone", "kindinorm")
+
+db_team1$V0_DEM_GEN <- as.factor(db_team1$V0_DEM_GEN)
+
+db_team1$V0_GRP <- as.factor(db_team1$V0_GRP)
+
+tbl1 <- db_team1 %>% 
+  select("V0_GRP", "V0_DEM_GEN", "V0_DEM_AGE") %>% 
+  tbl_summary(by = "V0_GRP", 
+              missing_text = "Пропущенные значения",
+              type = all_continuous() ~ "continuous2",
+              statistic = all_continuous() ~ c("{N_nonmiss}",
+                                               "{median} ({p25}, {p75})",
+                                               "{mean} ({sd})",
+                                               
+                                               "{min}, {max}")) %>%
+  add_ci()%>%
+  add_p(pvalue_fun = function(x) style_pvalue(x, digits = 3)) %>% 
+  add_n() %>% 
+  modify_header(
+    label = "**Группа**",
+    n = "**все пациенты**") %>% 
+  modify_spanning_header(all_stat_cols() ~ "**Пол**") %>%
+  bold_labels() %>% 
+  as_flex_table()
+
+sect_properties <- prop_section(
+  page_size = page_size(
+    orient = "landscape",
+    width = 8.3, height = 11.7
+  ),
+  type = "continuous",
+  page_margins = page_mar()
+)
+
+save_as_docx(
+  `Table1`=tbl1, path = "Table1.docx", pr_section = sect_properties
+)
+
+print(tbl1)
+```
+
