@@ -1,0 +1,133 @@
+---
+title: "Hacaton23"
+author: "Komand1"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+загружаем базу данных
+```{r}
+library(readxl)
+db <- read_excel("data/raw/db_team1.xlsx")
+db_team1 <- read_excel("data/raw/db_team1.xlsx")
+```
+
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(gtsummary)
+library(flextable)
+library(dplyr)
+library(epiR)
+library(ggplot2)
+library(ggpubr)
+library(gvlma)
+library(haven)
+library(htmlTable)
+library(openxlsx)
+library(pROC)
+library(psych)
+library(readr)
+library(labelled)
+library(readxl)
+library(rlang)
+library(rmarkdown)
+library(ROCR)
+library(tibble)
+library(xtable)
+library(gtsummary)
+library(tidyverse)
+library(tidyr)
+library(purrr)
+library(magrittr)
+library(utf8)
+library(flextable)
+library(Rmisc)
+library(epitools)
+library(officer)
+library(mlbench)
+library(coin)
+library(skimr)
+library(maps)
+library(writexl)
+library(corrplot)
+library(corrr)
+library(pheatmap)
+library(FactoMineR)
+lib4rary(plotly)
+library(tidyverse)
+library(hrbrthemes)
+```
+
+меняем названия колонок
+```{r}
+colnames(db)[3]  <- "Терапия"
+colnames(db)[4]  <- "Пол"
+colnames(db)[5]  <- "Возраст"
+colnames(db)[6]  <- "PSQI1"
+colnames(db)[7]  <- "PSQI2"
+
+```
+
+определением нет статистически значимых различий в группах по полу, возрасту, по индексу PQSI в группе киндинорма и группе зопиклона
+```{r}
+t.test(Возраст~Терапия, db)
+t.test(Пол~Терапия, db)
+t.test(PSQI1~Терапия, db)
+
+```
+
+
+анализ базовых характеристик
+```{r}
+db_team1$V0_DEM_GEN <- ifelse(db_team1$V0_DEM_GEN == 1, "male", "female")
+
+db_team1$V0_GRP <- ifelse(db_team1$V0_GRP == "T", "zopiclone", "kindinorm")
+
+db_team1$V0_DEM_GEN <- as.factor(db_team1$V0_DEM_GEN)
+
+db_team1$V0_GRP <- as.factor(db_team1$V0_GRP)
+
+tbl1 <- db_team1 %>% 
+  select("V0_GRP", "V0_DEM_GEN", "V0_DEM_AGE") %>% 
+  tbl_summary(by = "V0_GRP", 
+              missing_text = "Пропущенные значения",
+              type = all_continuous() ~ "continuous2",
+              statistic = all_continuous() ~ c("{N_nonmiss}",
+                                               "{median} ({p25}, {p75})",
+                                               "{mean} ({sd})",
+                                               
+                                               "{min}, {max}")) %>%
+  add_ci()%>%
+  add_p(pvalue_fun = function(x) style_pvalue(x, digits = 3)) %>% 
+  add_n() %>% 
+  modify_header(
+    label = "**Группа**",
+    n = "**все пациенты**") %>% 
+  modify_spanning_header(all_stat_cols() ~ "**Пол**") %>%
+  bold_labels() %>% 
+  as_flex_table()
+
+sect_properties <- prop_section(
+  page_size = page_size(
+    orient = "landscape",
+    width = 8.3, height = 11.7
+  ),
+  type = "continuous",
+  page_margins = page_mar()
+)
+
+save_as_docx(
+  `Table1`=tbl1, path = "Table1.docx", pr_section = sect_properties
+)
+
+print(tbl1)
+```
+
