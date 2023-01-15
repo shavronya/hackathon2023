@@ -1,0 +1,82 @@
+---
+title: "Hackaton"
+author: "Shakir Suleimanov"
+date: "2023-01-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = TRUE)
+knitr::opts_chunk$set(message = TRUE)
+```
+
+
+Import libraries
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(gtsummary)
+library(flextable)
+```
+
+Import dataset 
+
+```{r}
+db <- read_excel("db_team1.xlsx")
+```
+
+Mutate
+
+```{r}
+db <- db %>%
+  mutate(across(c(V0_GRP, V0_DEM_GEN, V1_NORM_ECG, V1_NORM_PHYS, V1_NORM_VIT, V2_NORM_ECG, V2_NORM_PHYS, V2_NORM_VIT), ~ as.factor(.x))) %>%
+  select(!`...1`)
+
+str(db)
+```
+
+Table 1
+
+```{r}
+
+db %>%
+  tbl_summary(by = V0_GRP) %>%
+  add_p()
+
+```
+
+
+Создадим лист со статистиками
+
+```{r}
+statistics <- list(
+      `__Количество субъектов` = ~length(.x) %>% as.character(),
+      `__Ср. знач.` = ~ifelse(sum(!is.na(.x)) == 0, "Н/П*", mean(.x, na.rm = TRUE) %>% round(2) %>% as.character()),
+      `__Станд. отклон.` = ~ifelse(sum(!is.na(.x)) < 3, "Н/П*", sd(.x, na.rm = TRUE) %>% round(2) %>% as.character()),
+      `__95% ДИ для среднего` = ~sd(.x, na.rm = TRUE) %>% round(2) %>% as.character(),
+      `__мин. - макс.` = ~ifelse(sum(!is.na(.x)) == 0, "Н/П*", paste0(min(.x, na.rm = TRUE) %>% round(2), " - ", max(.x, na.rm = TRUE) %>% round(2))),
+      `__Медиана` = ~ifelse(sum(!is.na(.x)) == 0, "Н/П*", median(.x, na.rm = TRUE) %>% round(2) %>% as.character()),
+      `__Q1 - Q3` = ~ifelse(sum(!is.na(.x)) == 0, "Н/П*", paste0(quantile(.x, 0.25, na.rm = TRUE) %>% round(2), " - ", quantile(.x, 0.75, na.rm = TRUE) %>% round(2)))
+)
+```
+
+Номинативные переменные
+
+```{r}
+
+db %>%
+  select(!ID, V0_GRP, where(is.numeric)) %>%
+  group_by(V0_GRP) %>%
+  summarise(across(where(is.numeric), statistics)) %>%
+  pivot_longer(!V0_GRP) %>%
+  separate(name, c("Переменная", "Статистика"), sep = "__") %>%
+  flextable() %>%
+  theme_box() %>%
+  merge_v(c("VO_GRP", "Переменная"))
+```
+
+
