@@ -145,10 +145,9 @@ db %>%
       xlab("Тип терапии")
 ```
 
-`Пол`, `Возраст`
 ```{r}
 db %>%
-  ggplot(aes(x=`Терапия`, y=`Возраст`, fill=`Терапия`)) +
+  ggplot(aes(x=`Терапия`, y=PSQI1, fill=`Терапия`)) +
     geom_boxplot(color="black", size=0.4, alpha=0.9)+
     theme(
       legend.position="none",
