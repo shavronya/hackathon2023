@@ -1,0 +1,128 @@
+---
+title: "Hackaton_Katya"
+author: "Ekaterina Fokina"
+date: "2023-01-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(openxlsx)
+library(gtsummary)
+library(dplyr)
+library(ggplot2)
+library(wesanderson)
+```
+
+# Data Import
+
+```{r}
+db <- read.xlsx("db_team1.xlsx")
+
+# Variables issues
+
+db <- db %>% mutate(V1_NORM_ECG = as.character(V1_NORM_ECG)) %>% mutate(V1_NORM_ECG = case_when(V1_NORM_ECG == "0" ~ "Норма",
+        V1_NORM_ECG == "1" ~ "Незначительные отклонения",
+        V1_NORM_ECG == "2" ~ "Патология"
+)) %>% mutate(V1_NORM_PHYS = as.character(V1_NORM_PHYS)) %>% mutate(V1_NORM_PHYS = case_when(V1_NORM_PHYS == "0" ~ "Норма",
+        V1_NORM_PHYS == "1" ~ "Незначительные отклонения",
+        V1_NORM_PHYS == "2" ~ "Патология"
+)) %>% mutate(V1_NORM_VIT = as.character(V1_NORM_VIT)) %>% mutate(V1_NORM_VIT = case_when(V1_NORM_VIT == "0" ~ "Норма",
+        V1_NORM_VIT == "1" ~ "Незначительные отклонения",
+        V1_NORM_VIT == "2" ~ "Патология"
+)) %>% mutate(V2_NORM_ECG = as.character(V2_NORM_ECG)) %>% mutate(V2_NORM_ECG = case_when(V2_NORM_ECG == "0" ~ "Норма",
+        V2_NORM_ECG == "1" ~ "Незначительные отклонения",
+        V2_NORM_ECG == "2" ~ "Патология"
+)) %>% mutate(V2_NORM_PHYS = as.character(V2_NORM_PHYS)) %>% mutate(V2_NORM_PHYS = case_when(V2_NORM_PHYS == "0" ~ "Норма",
+        V2_NORM_PHYS == "1" ~ "Незначительные отклонения",
+        V2_NORM_PHYS == "2" ~ "Патология"
+)) %>% mutate(V2_NORM_VIT = as.character(V2_NORM_VIT)) %>% mutate(V2_NORM_VIT = case_when(V2_NORM_VIT == "0" ~ "Норма",
+        V2_NORM_VIT == "1" ~ "Незначительные отклонения",
+        V2_NORM_VIT == "2" ~ "Патология"
+)) %>% mutate(V0_DEM_GEN = ifelse(V0_DEM_GEN == 1, "Мужской", "Женский")) %>%
+  mutate()
+  
+
+
+db %>% mutate(X1 = NULL, ID = NULL) %>% select(matches("V0|V1")) %>% tbl_summary(by = V0_GRP, type = c(V1_CB_HCT = "continuous"), statistic = list(
+      all_continuous() ~ "{mean} ({sd})",
+      all_categorical() ~ "{n} / {N} ({p}%)"
+    )) %>% add_p %>% add_ci
+     
+```
+
+Группы сопоставимы между собой, можно анализировать
+
+# Age plot
+
+```{r}
+age_plot <- db %>% mutate(
+    age_group = case_when(
+      V0_DEM_AGE >= 18 & V0_DEM_AGE < 20 ~ "18-20",
+      V0_DEM_AGE >= 20 & V0_DEM_AGE < 30 ~ "20-30",
+      V0_DEM_AGE >= 30 & V0_DEM_AGE < 40 ~ "30-40",
+      V0_DEM_AGE >= 40 ~ "40-50"
+    )
+  ) %>% ggplot(aes(age_group, fill = V0_GPR)) +
+  geom_bar(position = "dodge") +
+  scale_fill_manual(values = wes_palettes$Darjeeling1[c(2,3)]) +
+  guides(fill=guide_legend(title="Группа")) +
+  labs(x = "Возраст", y = "Количество пациентов") +
+  theme_light()
+
+```
+
+Делаю длинный датафрейм:
+
+```{r}
+# library(stringr)
+new <- db %>% mutate(X1 = NULL, ID = NULL, V0_GRP = NULL, V0_DEM_GEN = NULL, V0_DEM_AGE = NULL) %>% select(matches("V0|V1")) %>% rename_all(~stringr::str_replace(.,"^V1_","")) %>%
+  mutate(visit = 1)
+
+# Все переменные по визитам:
+
+new1 <- db %>% mutate(X1 = NULL, ID = NULL, V0_GRP = NULL, V0_DEM_GEN = NULL, V0_DEM_AGE = NULL) %>% select(matches("V2")) %>% rename_all(~stringr::str_replace(.,"^V2_","")) %>%
+  mutate(visit = 2) %>% rbind(new)
+```
+
+Анова для нумерических данных (оцениваем безопасность)
+
+```{r}
+# library(multcomp)
+
+
+
+aov(CB_WBC ~ visit, data = new1) %>% summary
+aov(CB_RBC ~ visit, data = new1) %>% summary
+aov(CB_HGB ~ visit, data = new1) %>% summary
+aov(CB_HCT ~ visit, data = new1) %>% summary
+aov(CB_PLT ~ visit, data = new1) %>% summary
+aov(`CB_NEUT#` ~ visit, data = new1) %>% summary
+aov(`CB_LYM#` ~ visit, data = new1) %>% summary
+aov(`CB_MON#` ~ visit, data = new1) %>% summary
+aov(`CB_EO#` ~ visit, data = new1) %>% summary
+aov(`CB_BAS#` ~ visit, data = new1) %>% summary
+
+```
+
+Логистическая регрессия по факторным переменным (1 и 2 визит - отличаются или нет?) (оцениваем безопасность)
+
+```{r}
+
+
+new1$NORM_ECG <- as.factor(new1$NORM_ECG)
+new1$NORM_PHYS <- as.factor(new1$NORM_PHYS)
+new1$NORM_VIT <- as.factor(new1$NORM_VIT)
+
+glm(NORM_ECG ~ visit, new1, family = "binomial") %>% summary
+glm(NORM_PHYS ~ visit, new1, family = "binomial") %>% summary
+glm(NORM_VIT ~ visit, new1, family = "binomial") %>% summary
+
+```
+
