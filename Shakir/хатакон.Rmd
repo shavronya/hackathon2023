@@ -87,17 +87,17 @@ t.test(PSQI1~Терапия, db)
 
 анализ базовых характеристик
 ```{r}
-db_team1$V0_DEM_GEN <- ifelse(db_team1$V0_DEM_GEN == 1, "male", "female")
+db$Пол <- ifelse(db$Пол == 1, "male", "female")
 
-db_team1$V0_GRP <- ifelse(db_team1$V0_GRP == "T", "zopiclone", "kindinorm")
+db$Терапия <- ifelse(db$Терапия == "T", "zopiclone", "kindinorm")
 
-db_team1$V0_DEM_GEN <- as.factor(db_team1$V0_DEM_GEN)
+db$Пол <- as.factor(db$Пол)
 
-db_team1$V0_GRP <- as.factor(db_team1$V0_GRP)
+db$Терапия <- as.factor(db$Терапия)
 
-tbl1 <- db_team1 %>% 
-  select("V0_GRP", "V0_DEM_GEN", "V0_DEM_AGE") %>% 
-  tbl_summary(by = "V0_GRP", 
+tbl1 <- db %>% 
+  select(`Терапия`, `Пол`, `Возраст`) %>% 
+  tbl_summary(by = `Терапия`, 
               missing_text = "Пропущенные значения",
               type = all_continuous() ~ "continuous2",
               statistic = all_continuous() ~ c("{N_nonmiss}",
@@ -129,5 +129,32 @@ save_as_docx(
 )
 
 print(tbl1)
+```
+
+рисуем графики для наглядности
+ 
+```{r}
+db %>%
+  ggplot( aes(x=`Терапия`, y=`Возраст`, fill=`Терапия`)) +
+    geom_boxplot(color="black", size=0.4, alpha=0.9)+
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    ) +
+    geom_jitter(color="black", size=0.4, alpha=0.9)+
+      xlab("Тип терапии")
+```
+
+`Пол`, `Возраст`
+```{r}
+db %>%
+  ggplot( aes(x=`Пол`, y=`Терапия`, fill=`Пол`)) +
+    geom_boxplot(color="black", size=0.4, alpha=0.9)+
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    ) +
+    geom_jitter(color="black", size=0.4, alpha=0.9)+
+      xlab("Тип терапии")
 ```
 
