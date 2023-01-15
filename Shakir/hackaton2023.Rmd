@@ -157,3 +157,28 @@ save_as_docx(
 print(tbl1)
 ```
 
+
+```{r}
+library(tidyverse)
+install.packages("hrbrthemes")
+library(hrbrthemes)
+```
+
+```{r}
+db$V0_DEM_GEN <- ifelse(db_team1$V0_DEM_GEN == 1, "male", "female")
+
+db$V0_GRP <- ifelse(db_team1$V0_GRP == "T", "zopiclone", "kindinorm")
+
+
+db %>%
+  ggplot( aes(x=V0_GRP, y=V0_DEM_AGE, fill=V0_GRP)) +
+    geom_boxplot(color="black", size=0.4, alpha=0.9)+
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    ) +
+    geom_jitter(color="black", size=0.4, alpha=0.9)+
+    ggtitle("A boxplot with jitter") +
+    xlab("Тип терапии")
+```
+
