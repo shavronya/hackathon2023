@@ -148,7 +148,7 @@ db %>%
 `Пол`, `Возраст`
 ```{r}
 db %>%
-  ggplot( aes(x=`Пол`, y=`Терапия`, fill=`Пол`)) +
+  ggplot(aes(x=`Терапия`, y=`Пол`, fill=`Пол`)) +
     geom_boxplot(color="black", size=0.4, alpha=0.9)+
     theme(
       legend.position="none",
